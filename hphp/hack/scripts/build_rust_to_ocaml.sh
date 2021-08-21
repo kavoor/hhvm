@@ -16,11 +16,16 @@ pkg="$1"
 lib="$2"
 shift 2
 
-if [ -z "${HACK_NO_CARGO_VENDOR}" ]; then
-  LOCK_FLAG="--frozen"
-else
-  LOCK_FLAG="--locked"
-fi
+while :; do
+    case $1 in
+        --cxx) cxx=$2
+          shift 2            
+        ;;
+        *) break
+    esac
+    shift
+done
+
 
 TARGET_DIR="${HACK_BUILD_ROOT}/target"
 
@@ -41,4 +46,13 @@ fi
     --package "$pkg" \
     $profile_flags \
     "$@";
-) && cp "${TARGET_DIR}/$profile/lib$lib.a" "lib${lib}_stubs.a"
+)
+
+if [[ -z $cxx ]]
+then
+   echo "@@@@@@@@@nocxxx" &&  
+  cp "${TARGET_DIR}/$profile/lib$lib.a" "lib${lib}_stubs.a"
+else
+  echo "@@@@katy@@@@@${cxx}/$profile/lib$lib.a" &&
+  cp "${TARGET_DIR}/$profile/lib$lib.a" "${cxx}/$profile/lib$lib.a"
+fi

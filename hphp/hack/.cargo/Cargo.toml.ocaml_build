@@ -8,6 +8,7 @@ members = [
     "src/decl/ffi",
     "src/deps/cargo/deps_rust",
     "src/deps/cargo/typing_deps_hash",
+    "src/facts/ffi_bridge",
     "src/facebook/hh",
     "src/facebook/hh/cargo/hh_api",
     "src/facebook/hh_decl",

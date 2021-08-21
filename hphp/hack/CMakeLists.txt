@@ -132,12 +132,42 @@ add_custom_target(
   COMMENT "Compiling Rust FFI"
 )
 
-add_dependencies(hack_ffi rustc cargo)
+if(DEFINED ENV{HACKDEBUG})
+  set(PROFILE "debug")
+else()
+  set(PROFILE "release")
+endif()
+
+set(FFI_BRIDGE "${CMAKE_BINARY_DIR}/hphp/hack/src/facts/ffi_bridge")
+set(RUST_PART_LIB "${FFI_BRIDGE}/${PROFILE}/librust_facts_ffi_bridge.a")
+message("@@@@${RUST_PART_LIB}")
+set(CARGO_BUILD "${CMAKE_SOURCE_DIR}/hphp/hack/scripts/build_rust_to_ocaml.sh")
+set(RUST_PART_CXX "${FFI_BRIDGE}/rust_facts_ffi_bridge.cpp")
+
+add_custom_command(
+    OUTPUT ${RUST_PART_CXX}
+    COMMAND . "${CMAKE_BINARY_DIR}/hphp/hack/dev_env.sh" && ${CARGO_BUILD} rust_facts_ffi_bridge rust_facts_ffi_bridge --cxx ${FFI_BRIDGE} CARGO_TARGET_DIR=${FFI_BRIDGE}
+    COMMAND cp ${FFI_BRIDGE}/cxxbridge/rust_facts_ffi_bridge/rust_facts_ffi_bridge.rs.cc ${RUST_PART_CXX}
+    COMMAND cp ${FFI_BRIDGE}/cxxbridge/rust_facts_ffi_bridge/rust_facts_ffi_bridge.rs.h ${FFI_BRIDGE}/rust_facts_ffi_bridge.rs
+    COMMENT "katykatykatykyat"
+    WORKING_DIRECTORY ${FFI_BRIDGE}
+)
+
+add_custom_target(
+  rust_facts_cxx
+  DEPENDS ${RUST_PART_CXX}
+)
+	
+add_library(rust_facts_ffi_bridge STATIC ${RUST_PART_CXX})
+add_dependencies(rust_facts_ffi_bridge rustc cargo rust_facts_cxx)
+target_link_libraries(rust_facts_ffi_bridge ${RUST_PART_LIB})
+
 # Not a true dependency, but we need to make sure we don't have two cargo/rustc
 # processes building the FFI files at the same time; this leads to intermittent
 # failures, which for some reason are particularly common on our Azure MacOS
 # build jobs
 add_dependencies(hack_dune hack_ffi)
+add_dependencies(hack_ffi rust_facts_ffi_bridge)
 
 if (NOT LZ4_FOUND)
   add_dependencies(hack_dune lz4)
